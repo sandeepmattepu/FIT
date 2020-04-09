@@ -39,7 +39,7 @@ public class NavigationPanelTest
 		String rootMenuName = "Home";
 		String seperator = "->";
 		String subMenuName = "Settings";
-		nav.setSeperator(null);
+		nav.setSeperator(seperator);
 		nav.setRootMenu(rootMenuName);
 		nav.changeToSubMenu(subMenuName);
 		assertEquals((rootMenuName + seperator + subMenuName), nav.toString());
@@ -107,7 +107,7 @@ public class NavigationPanelTest
 		nav.setRootMenu(rootMenuName);
 		nav.changeToSubMenu(subMenuName);
 		nav.changeToSubMenu(subMenuName2);
-		assertEquals((rootMenuName + seperator + subMenuName + seperator + subMenuName), nav.toString());
+		assertEquals((rootMenuName + seperator + subMenuName + seperator + subMenuName2), nav.toString());
 	}
 	
 	@Test
@@ -130,7 +130,7 @@ public class NavigationPanelTest
 		nav.setRootMenu(rootMenuName);
 		nav.changeToSubMenu(subMenuName);
 		nav.changeToSubMenu(subMenuName2);
-		assertEquals((rootMenuName + seperator + subMenuName + seperator + subMenuName), nav.toString());
+		assertEquals((rootMenuName + seperator + subMenuName + seperator + subMenuName2), nav.toString());
 		nav.goUpMenu();
 		assertEquals((rootMenuName + seperator + subMenuName), nav.toString());
 		nav.goUpMenu();
@@ -157,7 +157,7 @@ public class NavigationPanelTest
 		nav.setRootMenu(rootMenuName);
 		nav.changeToSubMenu(subMenuName);
 		nav.changeToSubMenu(subMenuName2);
-		assertEquals((rootMenuName + seperator + subMenuName + seperator + subMenuName), nav.toString());
+		assertEquals((rootMenuName + seperator + subMenuName + seperator + subMenuName2), nav.toString());
 		nav.goToRootMenu();
 		assertEquals(rootMenuName, nav.toString());
 	}
