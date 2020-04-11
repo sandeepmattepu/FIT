@@ -84,7 +84,12 @@ public class Menu implements IOption
 	
 	public int addSubMenu(Menu subMenu, int atIndex)
 	{
-		return addSubMenu(subMenu.menuName, subMenu, atIndex);
+		String subMenuName = "";
+		if(subMenu != null)
+		{
+			subMenuName = subMenu.menuName;
+		}
+		return addSubMenu(subMenuName, subMenu, atIndex);
 	}
 	
 	public Menu getSubMenu(int atIndex) throws SubMenuDoesNotExistException
