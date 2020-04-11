@@ -20,12 +20,9 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 
 import com.mattepu.exception.ActionOnlyForRootMenuException;
-import com.mattepu.exception.DuplicateRootMenuException;
 import com.mattepu.exception.IODeviceNotSetException;
 import com.mattepu.exception.InvalidIndexException;
 import com.mattepu.exception.RootMenuAsSubMenuException;
@@ -39,24 +36,6 @@ public class MenuTest
 	private IOption exitOption;
 	private IOption backOption;
 	private IOption homeOption;
-	
-	public static class UserInputSim implements Answer<String>
-	{
-		private int[] userGivenInputs;
-		private int index = -1;
-		
-		public UserInputSim(int[] userInputs)
-		{
-			userGivenInputs = userInputs;
-		}
-
-		@Override
-		public String answer(InvocationOnMock invocation) throws Throwable 
-		{
-			index += 1;
-			return Integer.toString(userGivenInputs[index]);
-		}
-	}
 	
 	public MenuTest()
 	{
@@ -106,7 +85,7 @@ public class MenuTest
 		menu2.addOption("Exit", exitOption);
 		menu.addSubMenu(menu2);
 		menu.setIODevice(ioDevice);
-		when(ioDevice.acceptInput()).then(new UserInputSim(new int[]{1, 1}));
+		when(ioDevice.acceptInput()).thenReturn("1", "1");
 		menu.start();
 		ArgumentCaptor<String> displayCaptor = ArgumentCaptor.forClass(String.class);
 		verify(ioDevice, times(2)).display(displayCaptor.capture());
@@ -130,7 +109,7 @@ public class MenuTest
 		menu2.addOption("Exit", exitOption);
 		menu.addSubMenu(menu2);
 		menu.setIODevice(ioDevice);
-		when(ioDevice.acceptInput()).then(new UserInputSim(new int[] {1, 1}));
+		when(ioDevice.acceptInput()).thenReturn("1", "1");
 		menu.start();
 		ArgumentCaptor<String> displayCaptor = ArgumentCaptor.forClass(String.class);
 		verify(ioDevice, times(2)).display(displayCaptor.capture());
@@ -150,7 +129,7 @@ public class MenuTest
 		Menu forgetWifiMenu = new Menu("Forget network");
 		wifiMenu.addSubMenu(forgetWifiMenu);
 		forgetWifiMenu.addOption("Home", homeOption);
-		when(ioDevice.acceptInput()).thenAnswer(new UserInputSim(new int[] {1, 1, 1, 2}));
+		when(ioDevice.acceptInput()).thenReturn("1", "1", "1", "2");
 		menu.start();
 		ArgumentCaptor<String> displayCaptor = ArgumentCaptor.forClass(String.class);
 		verify(ioDevice, times(4)).display(displayCaptor.capture());
@@ -163,6 +142,7 @@ public class MenuTest
 	public void Menu_IsRoot_OnlyRootCanUseStartMethod()
 	{
 		Menu rootMenu = new Menu("Home", true);
+		rootMenu.setIODevice(ioDevice);
 		rootMenu.start();
 		assertTrue(true);
 		
@@ -199,7 +179,7 @@ public class MenuTest
 			root1.addSubMenu(root2);
 			fail("It should throw DuplicateRootMenuException");
 		}
-		catch(DuplicateRootMenuException e)
+		catch(RootMenuAsSubMenuException e)
 		{
 			assertTrue(true);
 		}
@@ -229,6 +209,7 @@ public class MenuTest
 		menu.setHeader(null);
 		menu.addOption("Exit", exitOption);
 		when(ioDevice.acceptInput()).thenReturn("1");
+		menu.setIODevice(ioDevice);
 		menu.start();
 		verify(ioDevice).display("Home\n1 : Exit\nEnter your choice : ");
 		
@@ -238,6 +219,7 @@ public class MenuTest
 		menu.setHeader("");
 		menu.addOption("Exit", exitOption);
 		when(ioDevice.acceptInput()).thenReturn("1");
+		menu.setIODevice(ioDevice);
 		menu.start();
 		verify(ioDevice).display("Home\n1 : Exit\nEnter your choice : ");
 	}
@@ -249,6 +231,7 @@ public class MenuTest
 		menu.setHeader("This is header");
 		menu.addOption("Exit", exitOption);
 		when(ioDevice.acceptInput()).thenReturn("1");
+		menu.setIODevice(ioDevice);
 		menu.start();
 		verify(ioDevice).display("Home\nThis is header\n1 : Exit\nEnter your choice : ");
 	}
@@ -259,6 +242,7 @@ public class MenuTest
 		Menu menu = new Menu("Home", true);
 		menu.addOption(null, exitOption);
 		when(ioDevice.acceptInput()).thenReturn("1");
+		menu.setIODevice(ioDevice);
 		menu.start();
 		verify(ioDevice).display("Home\n1 : \nEnter your choice : ");
 		
@@ -267,6 +251,7 @@ public class MenuTest
 		menu = new Menu("Home", true);
 		menu.addOption("", exitOption);
 		when(ioDevice.acceptInput()).thenReturn("1");
+		menu.setIODevice(ioDevice);
 		menu.start();
 		verify(ioDevice).display("Home\n1 : \nEnter your choice : ");
 	}
@@ -280,8 +265,9 @@ public class MenuTest
 		menu.addOption("Exit", exitOption);
 		menu.setFooter("This is footer");
 		when(ioDevice.acceptInput()).thenReturn("2");
+		menu.setIODevice(ioDevice);
 		menu.start();
-		verify(ioDevice).display("Home\nThis is header\n1 : Option1\n2 : Exit\nEnter your choice : ");
+		verify(ioDevice).display("Home\nThis is header\n1 : Option1\n2 : Exit\nThis is footer\nEnter your choice : ");
 	}
 	
 	@Test
@@ -290,7 +276,8 @@ public class MenuTest
 		Menu menu = new Menu("Home", true);
 		menu.addOption("Option1", null);
 		menu.addOption("Exit", exitOption);
-		when(ioDevice.acceptInput()).then(new UserInputSim(new int[] {1, 2}));
+		when(ioDevice.acceptInput()).thenReturn("1", "2");
+		menu.setIODevice(ioDevice);
 		menu.start();
 		InOrder order = inOrder(ioDevice);
 		order.verify(ioDevice).clearDisplay();
@@ -309,7 +296,8 @@ public class MenuTest
 		when(option.optionSelected()).thenReturn(OptionActionResult.RETURN_HOME);
 		menu.addOption("Option1", option);
 		menu.addOption("Exit", exitOption);
-		when(ioDevice.acceptInput()).then(new UserInputSim(new int[] {1, 2}));
+		when(ioDevice.acceptInput()).thenReturn("1", "2");
+		menu.setIODevice(ioDevice);
 		menu.start();
 		verify(option).optionSelected();
 	}
@@ -326,11 +314,12 @@ public class MenuTest
 		IOption option1 = mock(IOption.class);
 		when(option1.optionSelected()).thenReturn(OptionActionResult.RETURN_HOME);
 		menu.addOption("Option1", option1, -1);
-		when(ioDevice.acceptInput()).then(new UserInputSim(new int[] {4, 3}));
+		when(ioDevice.acceptInput()).thenReturn("4", "3");
+		menu.setIODevice(ioDevice);
 		menu.start();
 		ArgumentCaptor<String> displayStringArg = ArgumentCaptor.forClass(String.class);
 		verify(option1).optionSelected();
-		verify(ioDevice).display(displayStringArg.capture());
+		verify(ioDevice, times(2)).display(displayStringArg.capture());
 		List<String> stringArgs = displayStringArg.getAllValues();
 		assertEquals("Home\n1 : Wifi\n2 : Display\n3 : Exit\n4 : Option1\nEnter your choice : ", stringArgs.get(0));
 		assertEquals("Home\n1 : Wifi\n2 : Display\n3 : Exit\n4 : Option1\nEnter your choice : ", stringArgs.get(1));
@@ -343,12 +332,13 @@ public class MenuTest
 		reset(ioDevice);
 		when(option1.optionSelected()).thenReturn(OptionActionResult.RETURN_HOME);
 		menu.addOption("Option1", option1, 1000);
-		when(ioDevice.acceptInput()).then(new UserInputSim(new int[] {3, 2}));
+		when(ioDevice.acceptInput()).thenReturn("3", "2");
+		menu.setIODevice(ioDevice);
 		menu.start();
 		verify(option1).optionSelected();
 		displayStringArg = ArgumentCaptor.forClass(String.class);
 		verify(option1).optionSelected();
-		verify(ioDevice).display(displayStringArg.capture());
+		verify(ioDevice, times(2)).display(displayStringArg.capture());
 		stringArgs = displayStringArg.getAllValues();
 		assertEquals("Home\n1 : Wifi\n2 : Exit\n3 : Option1\nEnter your choice : ", stringArgs.get(0));
 		assertEquals("Home\n1 : Wifi\n2 : Exit\n3 : Option1\nEnter your choice : ", stringArgs.get(1));
@@ -361,16 +351,17 @@ public class MenuTest
 		Menu wifiMenu = new Menu("Wifi");
 		Menu displayMenu = new Menu("Display");
 		menu.addSubMenu(wifiMenu);
-		menu.addSubMenu(displayMenu);
 		IOption option1 = mock(IOption.class);
 		menu.addOption("Option1", option1, 1);
+		menu.addSubMenu(displayMenu);
 		menu.addOption("Exit", exitOption);
 		when(option1.optionSelected()).thenReturn(OptionActionResult.RETURN_HOME);
-		when(ioDevice.acceptInput()).then(new UserInputSim(new int[] {1, 4}));
+		when(ioDevice.acceptInput()).thenReturn("2", "4");
+		menu.setIODevice(ioDevice);
 		menu.start();
 		verify(option1).optionSelected();
 		ArgumentCaptor<String> argCap = ArgumentCaptor.forClass(String.class);
-		verify(ioDevice).display(argCap.capture());
+		verify(ioDevice, times(2)).display(argCap.capture());
 		List<String> args = argCap.getAllValues();
 		assertEquals("Home\n1 : Wifi\n2 : Option1\n3 : Display\n4 : Exit\nEnter your choice : ", args.get(0));
 		assertEquals("Home\n1 : Wifi\n2 : Option1\n3 : Display\n4 : Exit\nEnter your choice : ", args.get(1));
@@ -409,7 +400,7 @@ public class MenuTest
 		menu.addSubMenu("Network", null, 0);
 		menu.addOption("Exit", exitOption);
 		menu.setIODevice(ioDevice);
-		when(ioDevice.acceptInput()).then(new UserInputSim(new int[] {1, 2}));
+		when(ioDevice.acceptInput()).thenReturn("1", "2");
 		menu.start();
 		InOrder order = inOrder(ioDevice);
 		order.verify(ioDevice).clearDisplay();
@@ -551,7 +542,7 @@ public class MenuTest
 	@Test
 	public void removeOptionsOrSubMenu_ValidInput_RemovedOptionOrSubMenuNotDisplayed()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.addOption("Exit", exitOption);
 		menu.addOption("Back", backOption);
 		Menu wifi = new Menu("Wifi");
@@ -573,7 +564,7 @@ public class MenuTest
 	@Test
 	public void setFooter_NullOrEmptyString_SkipDisplayingFooter()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.addOption("Exit", exitOption);
 		menu.addOption("Back", backOption);
 		menu.setFooter(null);
@@ -582,7 +573,10 @@ public class MenuTest
 		menu.start();
 		verify(ioDevice).display("Home\n1 : Exit\n2 : Back\nEnter your choice : ");
 		
+		reset(ioDevice);
+		
 		menu.setFooter("");
+		when(ioDevice.acceptInput()).thenReturn("1");
 		menu.start();
 		verify(ioDevice).display("Home\n1 : Exit\n2 : Back\nEnter your choice : ");
 	}
@@ -590,7 +584,7 @@ public class MenuTest
 	@Test
 	public void setFooter_ValidString_DisplayFooter()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.addOption("Exit", exitOption);
 		menu.addOption("Back", backOption);
 		menu.setFooter("Some footer message.");
@@ -603,7 +597,7 @@ public class MenuTest
 	@Test
 	public void setIODevice_NullValue_ThrowErrorWhenStartMethodCalled()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		try
 		{
 			menu.start();
@@ -618,7 +612,7 @@ public class MenuTest
 	@Test
 	public void setIODevice_NotNull_InteractWithThisInstanceInsideStartMethod()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.setIODevice(ioDevice);
 		menu.addOption("Exit", exitOption);
 		menu.addOption("Option1", null);
@@ -629,7 +623,7 @@ public class MenuTest
 		order.verify(ioDevice).display("Home\n1 : Exit\n2 : Option1\nEnter your choice : ");
 		order.verify(ioDevice).acceptInput();
 		order.verify(ioDevice).clearDisplay();
-		order.verify(ioDevice).display("Home\1 : Exit\n2 : Option1\nEnter your choice : ");
+		order.verify(ioDevice).display("Home\n1 : Exit\n2 : Option1\nEnter your choice : ");
 		order.verify(ioDevice).acceptInput();
 		order.verify(ioDevice).clearDisplay();
 	}
@@ -637,7 +631,7 @@ public class MenuTest
 	@Test
 	public void start_InValidInputFromIODevice_ClearDisplayAndShowOptionsAgain()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.setIODevice(ioDevice);
 		menu.addOption("Exit", exitOption);
 		when(ioDevice.acceptInput()).thenReturn(null, "1");
@@ -694,7 +688,7 @@ public class MenuTest
 	@Test
 	public void start_OptionSelected_IOptionIsExecuted()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.addOption("Exit", exitOption);
 		IOption option1 = mock(IOption.class);
 		menu.addOption("Option1", option1);
@@ -708,7 +702,7 @@ public class MenuTest
 	@Test
 	public void start_GO_UP_IsReturnedWhenOptionIsSelectedWhenMenuIsRoot_DoNothing()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.addOption("Exit", exitOption);
 		IOption option1 = mock(IOption.class);
 		menu.addOption("Option1", option1);
@@ -729,9 +723,10 @@ public class MenuTest
 	@Test
 	public void start_GO_UP_IsReturnedWhenOptionIsSelectedWhenMenuNotRoot_ClearDisplayAndDisplayUpMenu()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.addOption("Exit", exitOption);
 		Menu subMenu = new Menu("Wifi");
+		menu.addSubMenu(subMenu);
 		subMenu.addOption("Back", backOption);
 		menu.setIODevice(ioDevice);
 		when(ioDevice.acceptInput()).thenReturn("2", "1", "1");
@@ -752,7 +747,7 @@ public class MenuTest
 	@Test
 	public void start_RETURN_HOME_IsReturnedWhenOptionIsSelectedWhenMenuIsRoot_DoNothing()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.addOption("Exit", exitOption);
 		IOption option1 = mock(IOption.class);
 		menu.addOption("Option1", option1);
@@ -773,7 +768,7 @@ public class MenuTest
 	@Test
 	public void start_RETURN_HOME_IsReturnedWhenOptionIsSelectedWhenMenuIsNotRoot_ClearDisplayAndDisplayRootMenu()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.addOption("Exit", exitOption);
 		Menu subMenu = new Menu("Wifi");
 		Menu subMenu2 = new Menu("Home_WLAN");
@@ -804,7 +799,7 @@ public class MenuTest
 	@Test(timeout = 500)
 	public void start_EXIT_MENU_IsReturnedWhenOptionIsSelected_ClearDisplayAndReturnControlFromStart()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.addOption("Exit", exitOption);
 		Menu subMenu = new Menu("Wifi");
 		Menu subMenu2 = new Menu("Home_WLAN");
@@ -832,7 +827,7 @@ public class MenuTest
 	@Test
 	public void start_SubMenuSelected_ClearDisplayAndShowSubMenuOptions()
 	{
-		Menu menu = new Menu("Home");
+		Menu menu = new Menu("Home", true);
 		menu.addOption("Exit", exitOption);
 		Menu wifiMenu = new Menu("Wifi");
 		wifiMenu.addOption("Back", backOption);
@@ -841,6 +836,7 @@ public class MenuTest
 		menu.addSubMenu(wifiMenu);
 		menu.setIODevice(ioDevice);
 		when(ioDevice.acceptInput()).thenReturn("2", "1", "1");
+		menu.start();
 		InOrder order = inOrder(ioDevice);
 		order.verify(ioDevice).clearDisplay();
 		order.verify(ioDevice).display("Home\n1 : Exit\n2 : Wifi\nEnter your choice : ");
